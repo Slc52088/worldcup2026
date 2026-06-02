@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#060912" />
+  <meta name="description" content="2026世界杯智能预测系统 · 泊松+贝叶斯+蒙特卡洛 · 仅供娱乐" />
+  <title>2026世界杯 · 智能预测系统</title>
+
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+
+  <!-- 字体：Inter (正文，应需求指定) + Sora (品牌/标题显示字) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+  <!-- Bootstrap 5 (仅用栅格与工具类) -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============ 密码锁页面 ============ -->
+  <div id="lock-screen" class="full-loading" style="display:none;">
+    <div class="lock-particles" aria-hidden="true">
+      <span></span><span></span><span></span><span></span><span></span>
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <div class="lock-card glass">
+      <div class="lock-title text-gold">2026世界杯 · 智能预测系统</div>
+      <div class="lock-sub">INTELLIGENT PREDICTION SYSTEM</div>
+      <input id="lock-input" class="lock-input" type="password" placeholder="请输入访问密码" autocomplete="off" />
+      <div id="lock-error" class="lock-error"></div>
+      <label class="lock-remember">
+        <input type="checkbox" id="lock-remember" /> 记住我（30天）
+      </label>
+      <button id="lock-btn" class="btn-primary-glow" style="width:100%;">进入系统</button>
+      <div class="lock-footer">⚠️ 本系统仅供娱乐与技术学习，不构成任何博彩建议</div>
+    </div>
+  </div>
+
+  <!-- ============ 全屏加载 ============ -->
+  <div id="boot-loading" class="full-loading">
+    <div class="lock-card glass" style="text-align:center;">
+      <div class="spinner"></div>
+      <div id="boot-text" class="lock-sub" style="margin-top:18px;">正在唤醒预测引擎…</div>
+      <div class="text-dim" style="margin-top:8px;font-size:.8rem;">
+        Render 免费服务首次访问可能需 30-50 秒冷启动
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ 主应用 ============ -->
+  <div id="app" style="display:none;">
+    <!-- 导航 -->
+    <nav class="nav">
+      <div class="nav-inner">
+        <div class="nav-brand text-gold" data-route="home">⚽ 世界杯预测</div>
+        <div class="nav-links" id="nav-links">
+          <a class="nav-link" data-route="home">首页</a>
+          <a class="nav-link" data-route="champion">冠军之路</a>
+          <a class="nav-link" data-route="heat">热度总览</a>
+          <a class="nav-link" data-route="dashboard">数据仪表盘</a>
+          <a class="nav-link" data-route="about">关于</a>
+        </div>
+        <a class="nav-logout" id="logout-btn">退出</a>
+      </div>
+    </nav>
+
+    <!-- 路由视图容器 -->
+    <main class="main" id="view"></main>
+
+    <!-- PWA 安装提示 -->
+    <div id="install-prompt" class="install-prompt glass" style="display:none;">
+      <span>📲 将本应用添加到主屏，离线也能查看</span>
+      <button class="btn-ghost" id="install-btn">安装</button>
+      <button class="btn-ghost" id="install-dismiss">×</button>
+    </div>
+  </div>
+
+  <!-- ============ 页面模板 ============ -->
+  <!-- 首页 -->
+  <template id="tpl-home">
+    <div class="page-header">
+      <h1>赛程预测</h1>
+      <p class="text-muted">基于泊松统计 + 市场共识 + 临场信号的综合胜平负与比分预测</p>
+    </div>
+    <div class="filter-bar" id="date-filter"></div>
+    <div class="matches-grid" id="matches-grid"></div>
+    <div class="last-updated" id="home-updated"></div>
+  </template>
+
+  <!-- 比赛详情 -->
+  <template id="tpl-detail">
+    <div id="detail-root"></div>
+  </template>
+
+  <!-- 冠军之路 -->
+  <template id="tpl-champion">
+    <div class="page-header">
+      <h1 class="text-gold">冠军之路</h1>
+      <p class="text-muted" id="champion-note"></p>
+    </div>
+    <div class="podium" id="podium"></div>
+    <div class="glass" style="margin-top:24px;padding:24px;">
+      <h2 style="margin-top:0;">🏆 冠军之路 · 交互式淘汰赛树</h2>
+      <p class="text-muted" id="bracket-note" style="font-size:.85rem;"></p>
+      <div id="bracket-tree"></div>
+    </div>
+    <div class="glass" style="margin-top:24px;padding:24px;">
+      <h2 style="margin-top:0;">夺冠概率排行</h2>
+      <div id="champion-chart" style="height:360px;"></div>
+    </div>
+    <div class="glass" style="margin-top:24px;padding:24px;">
+      <h2 style="margin-top:0;">晋级概率分布（进四强 / 决赛 / 夺冠）</h2>
+      <div class="ranking-list" id="champion-ranking"></div>
+    </div>
+    <div class="last-updated" id="champion-updated"></div>
+  </template>
+
+  <!-- 热度总览 -->
+  <template id="tpl-heat">
+    <div class="page-header">
+      <h1>市场热度总览</h1>
+      <p class="text-muted">按盘面活跃度（冷热指数）排序，标记临场异动比赛</p>
+    </div>
+    <div class="ranking-list" id="heat-list"></div>
+    <div class="last-updated" id="heat-updated"></div>
+  </template>
+
+  <!-- 数据仪表盘 -->
+  <template id="tpl-dashboard">
+    <div class="page-header">
+      <h1>系统数据仪表盘</h1>
+      <p class="text-muted">模型贡献度、自动优化依据与预测准确率趋势</p>
+    </div>
+    <div class="kpi-row" id="dashboard-kpis"></div>
+    <div class="glass" style="margin-top:24px;padding:24px;">
+      <h2 style="margin-top:0;">各模型集成权重</h2>
+      <div id="weight-list"></div>
+    </div>
+    <div class="glass" style="margin-top:24px;padding:24px;">
+      <h2 style="margin-top:0;">🧠 系统自动优化依据</h2>
+      <p class="rationale" id="optimizer-note"></p>
+    </div>
+    <div class="glass" style="margin-top:24px;padding:24px;">
+      <h2 style="margin-top:0;">📡 赔率数据源 · 赛事发现</h2>
+      <div id="odds-events"></div>
+    </div>
+    <div class="last-updated" id="dashboard-updated"></div>
+  </template>
+
+  <!-- 关于 -->
+  <template id="tpl-about">
+    <div class="page-header">
+      <h1>关于本系统</h1>
+    </div>
+    <div class="glass about-section">
+      <h2>预测原理</h2>
+      <p class="rationale">
+        本系统采用三层集成架构：第一层用<b>泊松分布模型</b>从两队近期攻防数据估计期望进球并构建比分概率矩阵，
+        同时用<b>市场模型</b>将多家博彩公司赔率去抽水后取中位数得到市场共识；两者经<b>贝叶斯式加权</b>融合。
+        第二层引入<b>盘赔历史相似度（DTW）</b>与<b>临场异动检测</b>对概率做小幅修正。
+        第三层由<b>自进化优化器</b>依据历史命中率与 Brier Score 动态调整各模型权重。
+        冠军预测则使用<b>蒙特卡洛模拟</b>对淘汰赛推演一万次。
+      </p>
+    </div>
+    <div class="glass about-section">
+      <h2>数据源说明</h2>
+      <p class="rationale">
+        赛程与历史结果来自开源项目 <span class="mono">openfootball/worldcup.json</span>（经 jsDelivr CDN，无需密钥）。
+        实时赔率在配置 <span class="mono">ODDS_API_KEY</span> 后接入 The Odds API 免费档；未配置时由
+        <b>确定性模拟引擎</b>驱动，界面会以 <span class="badge badge-sim">模拟</span> /
+        <span class="badge badge-real">真实</span> 徽章明确标注当前数据来源。
+      </p>
+      <p class="rationale">
+        市场热度与资金流向通过<b>赔率隐含概率的变动</b>反推。这是业界常用的启发式方法，
+        反映的是赔率隐含概率的变化方向与幅度，<b>并非真实可见的下注金额</b>，请理性看待。
+      </p>
+    </div>
+    <div class="glass about-section">
+      <h2>免责声明</h2>
+      <p class="risk-note">
+        ⚠️ 本系统所有概率、比分与"价值投注"输出均为统计模型的估计值，存在模型误差与数据局限，
+        <b>不保证准确，仅供娱乐与技术学习，不构成任何博彩、投资或财务建议</b>。
+        请勿据此进行任何形式的真实下注。博彩有风险，参与需谨慎，且须遵守所在地法律法规。
+      </p>
+    </div>
+    <div class="last-updated">版本 <span id="about-version"></span></div>
+  </template>
+
+  <!-- 脚本 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.plot.ly/plotly-2.32.0.min.js" charset="utf-8"></script>
+  <script src="config.js"></script>
+  <script src="charts.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
