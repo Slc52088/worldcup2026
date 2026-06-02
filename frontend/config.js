@@ -3,7 +3,7 @@
 //   API_BASE: "https://worldcup2026-api.onrender.com"
 // 本地开发时改为：http://localhost:8000
 window.APP_CONFIG = {
-  API_BASE: "http://localhost:8000",
+  API_BASE: "https://worldcup2026.up.railway.app",
   APP_NAME: "2026世界杯 · 智能预测系统",
   VERSION: "1.2.0",
   REMEMBER_DAYS: 30,
