@@ -30,7 +30,7 @@ class Config:
     # 注：世界杯年份目录。2026 数据在赛前可能尚未完整，代码会优雅降级到内置队伍池。
     FIXTURES_URL: str = os.getenv(
         "FIXTURES_URL",
-        "https://cdn.jsdelivr.net/gh/openfootball/worldcup.json@master/2022/worldcup.json",
+        "https://cdn.jsdelivr.net/gh/openfootball/worldcup.json@master/2026/worldcup.json",
     )
 
     # ---- 蒙特卡洛 ----
